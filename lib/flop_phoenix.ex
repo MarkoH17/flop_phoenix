@@ -1647,8 +1647,8 @@ defmodule Flop.Phoenix do
     filter_map =
       filters
       |> Stream.with_index()
-      |> Enum.into(%{}, fn {filter, index} ->
-        {index, Map.from_struct(filter)}
+      |> Enum.into(%{}, fn {filter_or_combinator, index} ->
+        {index, filter_or_combinator_to_map(filter_or_combinator)}
       end)
 
     default_limit = Flop.get_option(:default_limit, opts)
@@ -1665,6 +1665,21 @@ defmodule Flop.Phoenix do
     |> Misc.maybe_put(:last, flop.last, default_limit)
     |> Misc.maybe_put_order_params(flop, default_order)
     |> Misc.maybe_put(:filters, filter_map)
+  end
+
+  defp filter_or_combinator_to_map(%Flop.Filter{} = filter) do
+    Map.from_struct(filter)
+  end
+
+  defp filter_or_combinator_to_map(%Flop.Combinator{or: or_filters}) do
+    or_map =
+      or_filters
+      |> Stream.with_index()
+      |> Enum.into(%{}, fn {filter, index} ->
+        {index, Map.from_struct(filter)}
+      end)
+
+    %{or: or_map}
   end
 
   @doc """

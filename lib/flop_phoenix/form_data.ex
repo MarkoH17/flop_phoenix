@@ -1,4 +1,5 @@
 defimpl Phoenix.HTML.FormData, for: Flop.Meta do
+  alias Flop.Combinator
   alias Flop.Filter
   alias Flop.Meta
   alias Flop.Phoenix.Misc
@@ -127,6 +128,7 @@ defimpl Phoenix.HTML.FormData, for: Flop.Meta do
   # no filters, use default
   defp filters_for([], nil, default, _, _) do
     default
+    |> reject_combinators()
     |> zip_errors([])
     |> Enum.map(fn {filter, errors} -> {filter, errors, []} end)
   end
@@ -134,6 +136,7 @@ defimpl Phoenix.HTML.FormData, for: Flop.Meta do
   # no static field configuration
   defp filters_for(filters, nil, _, errors, _) do
     filters
+    |> reject_combinators()
     |> zip_errors(errors)
     |> Enum.map(fn {filter, errors} -> {filter, errors, []} end)
   end
@@ -141,7 +144,10 @@ defimpl Phoenix.HTML.FormData, for: Flop.Meta do
   # with static field configuration
   defp filters_for(filters, fields, _, errors, false = _dynamic)
        when is_list(fields) do
-    filters_with_errors = zip_errors(filters, errors)
+    filters_with_errors =
+      filters
+      |> reject_combinators()
+      |> zip_errors(errors)
 
     fields
     |> Enum.reduce([], &filter_reducer(&1, &2, filters_with_errors))
@@ -150,11 +156,29 @@ defimpl Phoenix.HTML.FormData, for: Flop.Meta do
 
   defp filters_for(filters, fields, _, errors, true = _dynamic) do
     filters
+    |> reject_combinators()
     |> zip_errors(errors)
+    |> Enum.filter(fn {filter, _errors} -> is_filter?(filter) end)
     |> Enum.map(fn {%Filter{field: field} = filter, errors} ->
       {filter, errors, fields[field] || []}
     end)
   end
+
+  # Reject Combinator structs and combinator-like maps (with "or" key)
+  # as they cannot be rendered as simple form fields
+  defp reject_combinators(filters) do
+    Enum.reject(filters, &is_combinator?/1)
+  end
+
+  defp is_combinator?(%Combinator{}), do: true
+  defp is_combinator?(%{"or" => _}), do: true
+  defp is_combinator?(%{or: _}), do: true
+  defp is_combinator?(_), do: false
+
+  defp is_filter?(%Filter{}), do: true
+  defp is_filter?(%{"field" => _}), do: true
+  defp is_filter?(%{field: _}), do: true
+  defp is_filter?(_), do: false
 
   defp get_hidden(filter, false = _skip_hidden_op) do
     Misc.maybe_put([field: value(filter, :field)], :op, value(filter, :op), :==)

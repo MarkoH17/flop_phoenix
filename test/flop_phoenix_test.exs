@@ -2816,6 +2816,88 @@ defmodule Flop.PhoenixTest do
       refute Keyword.has_key?(query, :order_by)
       refute Keyword.has_key?(query, :order_directions)
     end
+
+    test "encodes combinators with or filters" do
+      flop = %Flop{
+        filters: [
+          %Flop.Filter{field: :name, op: :==, value: "Alice"},
+          %Flop.Combinator{
+            or: [
+              %Flop.Filter{field: :age, op: :>, value: 20},
+              %Flop.Filter{field: :status, op: :==, value: "active"}
+            ]
+          }
+        ]
+      }
+
+      query = to_query(flop)
+
+      assert query[:filters] == %{
+               0 => %{field: :name, op: :==, value: "Alice"},
+               1 => %{
+                 or: %{
+                   0 => %{field: :age, op: :>, value: 20},
+                   1 => %{field: :status, op: :==, value: "active"}
+                 }
+               }
+             }
+    end
+
+    test "encodes combinator with single filter" do
+      flop = %Flop{
+        filters: [
+          %Flop.Combinator{
+            or: [%Flop.Filter{field: :name, op: :ilike, value: "test"}]
+          }
+        ]
+      }
+
+      query = to_query(flop)
+
+      assert query[:filters] == %{
+               0 => %{
+                 or: %{
+                   0 => %{field: :name, op: :ilike, value: "test"}
+                 }
+               }
+             }
+    end
+
+    test "encodes multiple combinators" do
+      flop = %Flop{
+        filters: [
+          %Flop.Combinator{
+            or: [
+              %Flop.Filter{field: :a, op: :==, value: 1},
+              %Flop.Filter{field: :b, op: :==, value: 2}
+            ]
+          },
+          %Flop.Combinator{
+            or: [
+              %Flop.Filter{field: :c, op: :==, value: 3},
+              %Flop.Filter{field: :d, op: :==, value: 4}
+            ]
+          }
+        ]
+      }
+
+      query = to_query(flop)
+
+      assert query[:filters] == %{
+               0 => %{
+                 or: %{
+                   0 => %{field: :a, op: :==, value: 1},
+                   1 => %{field: :b, op: :==, value: 2}
+                 }
+               },
+               1 => %{
+                 or: %{
+                   0 => %{field: :c, op: :==, value: 3},
+                   1 => %{field: :d, op: :==, value: 4}
+                 }
+               }
+             }
+    end
   end
 
   describe "hidden_inputs_for_filter/1" do
