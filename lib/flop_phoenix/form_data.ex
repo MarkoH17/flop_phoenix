@@ -164,15 +164,15 @@ defimpl Phoenix.HTML.FormData, for: Flop.Meta do
     end)
   end
 
-  # Reject Combinator structs and combinator-like maps (with "or" key)
+  # Reject Combinator structs and combinator-like maps (with "type" and "filters" keys)
   # as they cannot be rendered as simple form fields
   defp reject_combinators(filters) do
     Enum.reject(filters, &is_combinator?/1)
   end
 
   defp is_combinator?(%Combinator{}), do: true
-  defp is_combinator?(%{"or" => _}), do: true
-  defp is_combinator?(%{or: _}), do: true
+  defp is_combinator?(%{"type" => type}) when type in ["and", "or"], do: true
+  defp is_combinator?(%{type: type}) when type in [:and, :or], do: true
   defp is_combinator?(_), do: false
 
   defp is_filter?(%Filter{}), do: true

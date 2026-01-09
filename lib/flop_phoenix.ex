@@ -1671,15 +1671,15 @@ defmodule Flop.Phoenix do
     Map.from_struct(filter)
   end
 
-  defp filter_or_combinator_to_map(%Flop.Combinator{or: or_filters}) do
-    or_map =
-      or_filters
+  defp filter_or_combinator_to_map(%Flop.Combinator{type: type, filters: filters}) do
+    filters_map =
+      filters
       |> Stream.with_index()
-      |> Enum.into(%{}, fn {filter, index} ->
-        {index, Map.from_struct(filter)}
+      |> Enum.into(%{}, fn {filter_or_combinator, index} ->
+        {index, filter_or_combinator_to_map(filter_or_combinator)}
       end)
 
-    %{or: or_map}
+    %{type: type, filters: filters_map}
   end
 
   @doc """

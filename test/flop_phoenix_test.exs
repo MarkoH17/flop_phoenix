@@ -2817,12 +2817,13 @@ defmodule Flop.PhoenixTest do
       refute Keyword.has_key?(query, :order_directions)
     end
 
-    test "encodes combinators with or filters" do
+    test "encodes combinators with or type" do
       flop = %Flop{
         filters: [
           %Flop.Filter{field: :name, op: :==, value: "Alice"},
           %Flop.Combinator{
-            or: [
+            type: :or,
+            filters: [
               %Flop.Filter{field: :age, op: :>, value: 20},
               %Flop.Filter{field: :status, op: :==, value: "active"}
             ]
@@ -2835,9 +2836,38 @@ defmodule Flop.PhoenixTest do
       assert query[:filters] == %{
                0 => %{field: :name, op: :==, value: "Alice"},
                1 => %{
-                 or: %{
+                 type: :or,
+                 filters: %{
                    0 => %{field: :age, op: :>, value: 20},
                    1 => %{field: :status, op: :==, value: "active"}
+                 }
+               }
+             }
+    end
+
+    test "encodes combinators with and type" do
+      flop = %Flop{
+        filters: [
+          %Flop.Filter{field: :name, op: :==, value: "Alice"},
+          %Flop.Combinator{
+            type: :and,
+            filters: [
+              %Flop.Filter{field: :age, op: :>, value: 20},
+              %Flop.Filter{field: :age, op: :<, value: 50}
+            ]
+          }
+        ]
+      }
+
+      query = to_query(flop)
+
+      assert query[:filters] == %{
+               0 => %{field: :name, op: :==, value: "Alice"},
+               1 => %{
+                 type: :and,
+                 filters: %{
+                   0 => %{field: :age, op: :>, value: 20},
+                   1 => %{field: :age, op: :<, value: 50}
                  }
                }
              }
@@ -2847,7 +2877,8 @@ defmodule Flop.PhoenixTest do
       flop = %Flop{
         filters: [
           %Flop.Combinator{
-            or: [%Flop.Filter{field: :name, op: :ilike, value: "test"}]
+            type: :or,
+            filters: [%Flop.Filter{field: :name, op: :ilike, value: "test"}]
           }
         ]
       }
@@ -2856,7 +2887,8 @@ defmodule Flop.PhoenixTest do
 
       assert query[:filters] == %{
                0 => %{
-                 or: %{
+                 type: :or,
+                 filters: %{
                    0 => %{field: :name, op: :ilike, value: "test"}
                  }
                }
@@ -2867,13 +2899,15 @@ defmodule Flop.PhoenixTest do
       flop = %Flop{
         filters: [
           %Flop.Combinator{
-            or: [
+            type: :or,
+            filters: [
               %Flop.Filter{field: :a, op: :==, value: 1},
               %Flop.Filter{field: :b, op: :==, value: 2}
             ]
           },
           %Flop.Combinator{
-            or: [
+            type: :and,
+            filters: [
               %Flop.Filter{field: :c, op: :==, value: 3},
               %Flop.Filter{field: :d, op: :==, value: 4}
             ]
@@ -2885,15 +2919,55 @@ defmodule Flop.PhoenixTest do
 
       assert query[:filters] == %{
                0 => %{
-                 or: %{
+                 type: :or,
+                 filters: %{
                    0 => %{field: :a, op: :==, value: 1},
                    1 => %{field: :b, op: :==, value: 2}
                  }
                },
                1 => %{
-                 or: %{
+                 type: :and,
+                 filters: %{
                    0 => %{field: :c, op: :==, value: 3},
                    1 => %{field: :d, op: :==, value: 4}
+                 }
+               }
+             }
+    end
+
+    test "encodes nested combinators" do
+      flop = %Flop{
+        filters: [
+          %Flop.Combinator{
+            type: :or,
+            filters: [
+              %Flop.Filter{field: :name, op: :==, value: "Alice"},
+              %Flop.Combinator{
+                type: :and,
+                filters: [
+                  %Flop.Filter{field: :age, op: :>, value: 20},
+                  %Flop.Filter{field: :status, op: :==, value: "active"}
+                ]
+              }
+            ]
+          }
+        ]
+      }
+
+      query = to_query(flop)
+
+      assert query[:filters] == %{
+               0 => %{
+                 type: :or,
+                 filters: %{
+                   0 => %{field: :name, op: :==, value: "Alice"},
+                   1 => %{
+                     type: :and,
+                     filters: %{
+                       0 => %{field: :age, op: :>, value: 20},
+                       1 => %{field: :status, op: :==, value: "active"}
+                     }
+                   }
                  }
                }
              }
