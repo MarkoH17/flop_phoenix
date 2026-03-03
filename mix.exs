@@ -54,13 +54,13 @@ defmodule FlopPhoenix.MixProject do
 
   defp deps do
     [
-      {:credo, "1.7.15", only: [:test], runtime: false},
+      {:credo, "== 1.7.17", only: [:test], runtime: false},
       {:dialyxir, "1.4.7", only: [:test], runtime: false},
-      {:ex_doc, "0.39.3", only: :dev, runtime: false},
+      {:ex_doc, "0.40.1", only: :dev, runtime: false},
       {:ex_machina, "2.8.0", only: :test},
       {:excoveralls, "0.18.5", only: :test},
       {:floki, "0.38.0", only: :test},
-      {:lazy_html, "0.1.8", only: :test},
+      {:lazy_html, "0.1.10", only: :test},
       {:flop, ">= 0.23.0 and < 0.27.0"},
       {:jason, "1.4.4", only: [:dev, :test]},
       {:makeup_css, "0.2.3", only: :dev, runtime: false},
